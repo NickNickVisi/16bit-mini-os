@@ -1,3 +1,5 @@
+char buffer[32];
+
 void print_char(char c) {
     asm volatile (
         "mov $0x0E, %%ah\n\t" 
@@ -7,15 +9,6 @@ void print_char(char c) {
         : "r" (c)
         : "ah", "al"
     );
-}
-
-void print_string(const char *s) {
-    while (*s) {
-        if (*s == '\n')
-            print_char('\r');
-        print_char(*s);
-        s++;
-    }
 }
 
 void read_char(char *c) {
@@ -29,28 +22,36 @@ void read_char(char *c) {
     );
 }
 
-void read_string(char *buffer) {
-    unsigned short i = 0;
+void read_string(void) {
     char c;
-    read_char(&c);
-    print_char(c);
-    
-    while (c != '\r') {
-        buffer[i++] = c;
+    unsigned short i = 0;
+
+    while (i < 31) {
         read_char(&c);
-        print_char(c);
-        if (i >= 64)
+
+        if (c == '\r') {
             break;
+        } else if (c == 0x08) {
+            if (i > 0) {
+                i--;
+                print_char(0x08);
+                print_char(' ');
+                print_char(0x08);
+            }
+        } else {
+            print_char(c);
+            buffer[i++] = c;
+        }
     }
+    buffer[i] = '\0';
     print_char('\n');
     print_char('\r');
+    
 }
 
 void main_c(void) {
-    char buffer[64];
-
-    print_string("Loaded\n");
     while (1) {
-        read_string(buffer);
+        print_char('>');
+        read_string();
     }
 }
